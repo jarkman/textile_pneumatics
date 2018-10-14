@@ -42,8 +42,86 @@ float fmap(float x, float in_min, float in_max, float out_min, float out_max)
 long bendPeriod = 15000;
 long strengthPeriod = 10L*10000L;
 
+long dur = 5000L;
+float f = 0.0;
 
 void loop() {
+  loopCatEar();
+  //loopDoubleFrondEar();
+}
+
+void loopDoubleFrondEar()
+{
+  
+  long now = millis();
+
+  if( millis() - modeStart > dur)
+  {
+    mode++;
+    if( mode > 3 )
+      mode = 0;
+    modeStart = millis();
+    
+  }
+
+  f = (float) (millis()-modeStart)/(float) dur;
+  
+  if( false )
+  {
+    chamber1.setTargetFraction( 0.0);
+      chamber2.setTargetFraction( 1.0);
+      chamber3.setTargetFraction( 0.0  );
+  }
+  else
+  {
+  switch( mode )
+  {
+    case 0:
+    dur = 4000;
+      chamber1.setTargetFraction( f);
+      chamber2.setTargetFraction( 0.0);
+      chamber3.setTargetFraction( 0 );
+      break;
+
+    case 1:
+      chamber1.setTargetFraction( 1.0-f);
+      chamber2.setTargetFraction( 0.0);
+      chamber3.setTargetFraction( 0 );
+      break;
+      
+   case 2:
+      chamber1.setTargetFraction( 0);
+      chamber2.setTargetFraction( f);
+      chamber3.setTargetFraction(0);
+      //dur = 2000;
+      break;
+
+
+    case 3:
+      chamber1.setTargetFraction( 0);
+      chamber2.setTargetFraction( 1.0-f);
+      chamber3.setTargetFraction( 0 );
+      break;
+      
+
+     
+    case 4:
+    dur = 2000;
+      chamber1.setTargetFraction( 0.0);
+      chamber2.setTargetFraction( 0.0);
+      chamber3.setTargetFraction( 0.0  );
+      break;
+      
+
+      
+  }
+  }
+   chamber1.loop();
+ chamber2.loop();
+ chamber3.loop();
+
+  }
+void loopCatEar() {
 
  long now = millis();
  long bendPhaseMillis = (now - startTime) % bendPeriod;
@@ -78,46 +156,67 @@ void loop() {
  Serial.println(" kpa" );
 */
 
-  if( millis() - modeStart > 5000L)
+  if( millis() - modeStart > dur)
   {
     mode++;
     if( mode > 3 )
       mode = 0;
     modeStart = millis();
+    
   }
+
+  f = (float) (millis()-modeStart)/(float) dur;
   
+  if( false )
+  {
+    chamber1.setTargetFraction( 0.0);
+      chamber2.setTargetFraction( 1.0);
+      chamber3.setTargetFraction( 1.0  );
+  }
+  else
+  {
   switch( mode )
   {
     case 0:
-      chamber1.setTargetFraction( 0.0);
+    dur = 1500;
+      chamber1.setTargetFraction( f);
       chamber2.setTargetFraction( 0.0);
-      chamber3.setTargetFraction( 1.0  );
+      chamber3.setTargetFraction( f );
       break;
 
     case 1:
-      chamber1.setTargetFraction( 1.0);
-      chamber2.setTargetFraction( 0.0);
-      chamber3.setTargetFraction( 1.0  );
+      chamber1.setTargetFraction( 1.0-f);
+      chamber2.setTargetFraction( f );
+      chamber3.setTargetFraction( 1.0-f );
       break;
       
    case 2:
-      chamber1.setTargetFraction( 0.0);
-      chamber2.setTargetFraction( 0.0);
-      chamber3.setTargetFraction( 1.0  );
+      chamber1.setTargetFraction( f);
+      chamber2.setTargetFraction( 1.0-f);
+      chamber3.setTargetFraction( f );
+      dur = 1200;
       break;
 
 
     case 3:
-      chamber1.setTargetFraction( 0.0);
-      chamber2.setTargetFraction( 1.0);
-      chamber3.setTargetFraction( 1.0  );
+      chamber1.setTargetFraction( 1.0-f);
+      chamber2.setTargetFraction( 1.0-f);
+      chamber3.setTargetFraction( 1.0-f );
       break;
       
 
      
+    case 4:
+    dur = 2000;
+      chamber1.setTargetFraction( 0.0);
+      chamber2.setTargetFraction( 0.0);
+      chamber3.setTargetFraction( 0.0  );
+      break;
+      
+
       
   }
-
+  }
    chamber1.loop();
  chamber2.loop();
  chamber3.loop();
