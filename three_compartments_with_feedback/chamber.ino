@@ -5,8 +5,8 @@ Chamber::Chamber(int p, int v, int s)
   valvePin = v;
   sensorPin = s;
 
-  deadband = 2; // in kpa
-  maxPressure = 45; // limit of our pumps
+  deadband = 4; //2; // in kpa
+  maxPressure = 60; //45; // limit of our pumps
   
   targetPressure = 0;
   
