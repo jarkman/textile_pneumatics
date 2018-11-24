@@ -45,7 +45,7 @@ boolean supermanualIdle()
   return millis() - lastSupermanualTime > 20000;
 } 
 
-int adcForBellows[] = {0,1,2,3}; // make slider layout match bellow layout, assuming user is standing behind blower
+int adcForBellows[] = {0,2,1,3}; // make slider layout match bellow layout, assuming user is standing behind blower
 void loopSupermanual() 
 {
   

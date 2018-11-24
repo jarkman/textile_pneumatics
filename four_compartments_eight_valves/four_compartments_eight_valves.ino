@@ -37,6 +37,11 @@ boolean traceSupermanual = false;
 float supermanual[]={0,0,0,0};
 boolean gotSupermanual = false;
 
+
+float imuNod = 0.0; // nod amount from -1.0 to 1.0
+float imuTurn = 0.0; // head turn amount from -1.0 to 1.0
+float imuSmoothTurn = 0.0;
+
 long startTime;
 int mode = 0;
 long modeStart = 0;
@@ -79,9 +84,11 @@ void setupI2C()
 void setup() {
   Serial.begin(9600);
 
-  setup1msTimer();
+  
   Serial.println("");
   Serial.println("---Setup---");
+  setupMpu6050();
+  setup1msTimer();
   Serial.println("..i2c");
   setupI2C();
 
@@ -106,6 +113,7 @@ float fmap(float x, float in_min, float in_max, float out_min, float out_max)
 
 
 void loop() {
+  loopMpu6050();
   loopSupermanual();
   reservoir.loop();
   baselinePressure = reservoir.targetPressure - 2.0;
@@ -115,7 +123,10 @@ void loop() {
   chamber4.loop();
   if( loopSupermanualControl())
     return;
-    
+
+  if( loopImuPose())
+    return;
+  
   loopCatEar();
   //loopDoubleFrondEar();
 
@@ -142,6 +153,28 @@ boolean loopSupermanualControl()
 
   return true;
 }
+
+boolean loopImuPose()
+{
+
+  float l;
+  float r;
+
+  l = fconstrain(imuNod*0.5 + 0.5, 0.0, 1.0);
+  r = fconstrain(imuNod*0.5 + 0.5, 0.0, 1.0);
+  l += imuTurn;
+  r -= imuTurn;
+   
+  chamber1.setTargetPressure(baselinePressure * l);
+  chamber2.setTargetPressure(baselinePressure * r);
+  chamber3.setTargetPressure(baselinePressure * l);
+  chamber4.setTargetPressure(baselinePressure * r);
+
+  printPressures("imuPose: ");
+
+  return true;
+}
+
 
 void loopDoubleFrondEar()
 {
@@ -321,6 +354,8 @@ void loopCatEar() {
 void printGraph()
 {
 
+return;
+
     Serial.print(reservoir.pressure);   
     Serial.print(",");
 
@@ -382,5 +417,16 @@ void printPressures(char*label)
   Serial.println(" ");
 
 
+}
+
+float fconstrain(float f, float out_min, float out_max)
+{
+  if( f < out_min )
+    f = out_min;
+
+  if( f > out_max )
+    f = out_max;
+
+  return f;
 }
 

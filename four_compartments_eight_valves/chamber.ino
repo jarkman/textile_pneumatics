@@ -6,7 +6,7 @@ Chamber::Chamber(int i, int d, int s)
   sensorPin = s;
 
   deadband = 0.25; // in kpa
-  pulseFactor = 1.0;
+  pulseFactor = 1.0; // gives us an effective deadband, since pulse times are quantised to 1ms
   
   targetPressure = 0;
   
@@ -30,19 +30,28 @@ void Chamber::loop()
     state = 0;
     return;
   }
+
+  remainingMs = pulseFactor*fabs(p-targetPressure);
+  if( remainingMs < 1 )
+  {
+    // too short a pulse to do
+    remainingMs = 0;
+    state = 0;
+    return;
+  }
   
   if( targetPressure < p )
   {
     digitalWrite(inflatePin,0);
     digitalWrite(deflatePin,1); // let some air out
-    remainingMs = pulseFactor*fabs(p-targetPressure);
+    
     state = -1;
   }
   else
   {
     digitalWrite(inflatePin,1);
     digitalWrite(deflatePin,0); 
-    remainingMs = pulseFactor*fabs(p-targetPressure);
+    
     
     state = 1;
   }
