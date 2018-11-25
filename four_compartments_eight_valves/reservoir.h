@@ -6,7 +6,8 @@ class Reservoir {
   float targetPressure;
   float deadband;
   float smoothedPressure;
-
+  float pumpSpeed;
+  float pumpDelta;
 
  
   Reservoir(int p, int s);
@@ -14,7 +15,7 @@ class Reservoir {
   void readPressure();
   void setTargetPressure( float t );
 
-   void pumpSpeed(float p);
+   void setPumpSpeed(float p);
 
   void loop();
 };

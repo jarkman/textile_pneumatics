@@ -4,6 +4,8 @@
 #include "chamber.h"
 #include "reservoir.h"
 
+#define LED_PIN 13
+
 const int reservoirPumpPin = 10; // must be a PWM pin - 3, 5, 6, 9, 10, and 11 on Nano
 
 const int inflate1Pin = 3; 
@@ -33,9 +35,14 @@ Reservoir reservoir(reservoirPumpPin, pressureReservoirPin);
 
 float baselinePressure = 0.0; 
 
+boolean trace = false;
+boolean tracePressures = false;
+boolean traceGraph = true;
+
 boolean traceSupermanual = false;
 float supermanual[]={0,0,0,0};
 boolean gotSupermanual = false;
+boolean gotImu = false;
 
 
 float imuNod = 0.0; // nod amount from -1.0 to 1.0
@@ -51,7 +58,12 @@ long bendPeriod = 30000;
 long strengthPeriod = 10L*10000L;
 
 long dur = 10000L;
-float f = 0.0;
+
+long loopDuration = 4; // tracks measured loop duration
+
+
+
+bool blinkState = false;
 
 
 void setup1msTimer()
@@ -76,23 +88,26 @@ SIGNAL(TIMER0_COMPA_vect)
 void setupI2C()
 {
   Wire.begin();
-  Wire.setClock(10000);  // 10k for a 10m wire length limit - esp seems to ignore this! Currently getting a 53khz clock
+  //Wire.setClock(10000);  // 10k for a 10m wire length limit - esp seems to ignore this! Currently getting a 53khz clock
 
 }
 
 
 void setup() {
-  Serial.begin(9600);
+  Serial.begin(115200);
 
   
   Serial.println("");
   Serial.println("---Setup---");
-  setupMpu6050();
-  setup1msTimer();
-  Serial.println("..i2c");
+  if( trace ) Serial.println("setupI2C");
   setupI2C();
+  if( trace ) Serial.println("setupMpu6050");
+  setupMpu6050();
+  if( trace ) Serial.println("1ms timer");
+  setup1msTimer();
+  
 
-    Serial.println("..supermanual");
+  if( trace ) Serial.println("setupSupermanual");
   setupSupermanual();
   
   chamber1.setTargetPressure(0);
@@ -102,6 +117,7 @@ void setup() {
   startTime = millis();
   mode = 0;
   modeStart = millis();
+  if( trace ) Serial.println("setup done");
 }
 
 
@@ -113,26 +129,58 @@ float fmap(float x, float in_min, float in_max, float out_min, float out_max)
 
 
 void loop() {
+  long loopStart = millis();
+  
+  timedLoop();
+  
+  if( trace ) Serial.println("blink");
+    // blink LED to indicate activity
+    blinkState = !blinkState;
+    digitalWrite(LED_PIN, blinkState);
+    
+  if( tracePressures ) printPressures("  ");
+  if( traceGraph) printGraph();
+  
+  long loopEnd = millis();
+  loopDuration = loopEnd-loopStart;
+  //Serial.print("loop took ");
+  //Serial.println(loopDuration);
+}
+
+void timedLoop()
+{
+
+  if( trace ) Serial.println("loopMpu6050");
   loopMpu6050();
+  if( trace ) Serial.println("loopSupermanual");
   loopSupermanual();
+  if( trace ) Serial.println("reservoir.loop");
   reservoir.loop();
-  baselinePressure = reservoir.targetPressure - 2.0;
+  baselinePressure = reservoir.smoothedPressure - 2.0;
+  if( trace ) Serial.println("chamber1.loop");
   chamber1.loop();
   chamber2.loop();
   chamber3.loop();
   chamber4.loop();
+  
+  if( trace ) Serial.println("loopSupermanualControl");
   if( loopSupermanualControl())
     return;
 
+
+
+  if( trace ) Serial.println("loopImuPose");
   if( loopImuPose())
     return;
-  
+
+
+  if( trace ) Serial.println("loopCatEar");
   loopCatEar();
   //loopDoubleFrondEar();
 
-  printGraph();
+ 
 
-  printPressures("Ear: ");
+ 
 }
 
 boolean loopSupermanualControl()
@@ -149,14 +197,16 @@ boolean loopSupermanualControl()
   chamber3.setTargetPressure(baselinePressure * supermanual[2]);
   chamber4.setTargetPressure(baselinePressure * supermanual[3]);
 
-  printPressures("Supermanual: ");
+  
 
   return true;
 }
 
 boolean loopImuPose()
 {
-
+  if( ! gotImu )
+    return false;
+    
   float l;
   float r;
 
@@ -164,90 +214,24 @@ boolean loopImuPose()
   r = fconstrain(imuNod*0.5 + 0.5, 0.0, 1.0);
   l += imuTurn;
   r -= imuTurn;
-   
-  chamber1.setTargetPressure(baselinePressure * l);
-  chamber2.setTargetPressure(baselinePressure * r);
-  chamber3.setTargetPressure(baselinePressure * l);
-  chamber4.setTargetPressure(baselinePressure * r);
 
-  printPressures("imuPose: ");
+   //return true;
+   
+  chamber1.setTargetFraction( l);
+  chamber2.setTargetFraction( r);
+  chamber3.setTargetFraction( l);
+  chamber4.setTargetFraction( r);
 
   return true;
 }
 
 
-void loopDoubleFrondEar()
-{
-  
-  long now = millis();
-
-  if( millis() - modeStart > dur)
-  {
-    mode++;
-    if( mode > 3 )
-      mode = 0;
-    modeStart = millis();
-    
-  }
-
-  f = (float) (millis()-modeStart)/(float) dur;
-  
-  if( false )
-  {
-    chamber1.setTargetFraction( 0.0);
-      chamber2.setTargetFraction( 1.0);
-      chamber3.setTargetFraction( 0.0  );
-  }
-  else
-  {
-  switch( mode )
-  {
-    case 0:
-    dur = 4000;
-      chamber1.setTargetFraction( f);
-      chamber2.setTargetFraction( 0.0);
-      chamber3.setTargetFraction( 0 );
-      break;
-
-    case 1:
-      chamber1.setTargetFraction( 1.0-f);
-      chamber2.setTargetFraction( 0.0);
-      chamber3.setTargetFraction( 0 );
-      break;
-      
-   case 2:
-      chamber1.setTargetFraction( 0);
-      chamber2.setTargetFraction( f);
-      chamber3.setTargetFraction(0);
-      //dur = 2000;
-      break;
-
-
-    case 3:
-      chamber1.setTargetFraction( 0);
-      chamber2.setTargetFraction( 1.0-f);
-      chamber3.setTargetFraction( 0 );
-      break;
-      
-
-     
-    case 4:
-    dur = 2000;
-      chamber1.setTargetFraction( 0.0);
-      chamber2.setTargetFraction( 0.0);
-      chamber3.setTargetFraction( 0.0  );
-      break;
-      
-
-      
-  }
-  }
-
-  
-
-  }
 void loopCatEar() {
 
+
+ dur = 2000;
+
+ 
  long now = millis();
  long bendPhaseMillis = (now - startTime) % bendPeriod;
  float bendPhase = 2.0 * 3.14 * (float)bendPhaseMillis / (float) bendPeriod;
@@ -256,6 +240,7 @@ void loopCatEar() {
  long strengthPhaseMillis = (now - startTime) % strengthPeriod;
  float strengthPhase = 2.0 * 3.14 * (float)strengthPhaseMillis / (float) strengthPeriod;
  float strengthPosition = (1.0+sin(strengthPhase))/2.0;
+
 
 /*
  Serial.print(strengthPosition);
@@ -284,15 +269,15 @@ void loopCatEar() {
   if( millis() - modeStart > dur)
   {
     mode++;
-    if( mode > 3 )
+    if( mode > 1 )
       mode = 0;
     modeStart = millis();
     
   }
 
-  f = (float) (millis()-modeStart)/(float) dur;
+  float f = (float) (millis()-modeStart)/(float) dur;
 
-    dur = 2000;
+   
     
   if( false )
   {
@@ -302,69 +287,58 @@ void loopCatEar() {
   }
   else
   {
-  switch( mode )
-  {
-    case 0:
-    //dur = 1500;
-      chamber1.setTargetFraction( f);
-      chamber2.setTargetFraction( 0.0);
-      chamber3.setTargetFraction( f );
-      break;
-
-    case 1:
-      chamber1.setTargetFraction( 1.0-f);
-      chamber2.setTargetFraction( f );
-      chamber3.setTargetFraction( 1.0-f );
-      break;
-      
-   case 2:
-      chamber1.setTargetFraction( f);
-      chamber2.setTargetFraction( 1.0-f);
-      chamber3.setTargetFraction( f );
-      //dur = 1200;
-      break;
-
-
-    case 3:
-      chamber1.setTargetFraction( 1.0-f);
-      chamber2.setTargetFraction( 1.0-f);
-      chamber3.setTargetFraction( 1.0-f );
-      break;
-      
-
+    switch( mode )
+    {
+      case 0:
      
-    case 4:
-    //dur = 2000;
-      chamber1.setTargetFraction( 0.0);
-      chamber2.setTargetFraction( 0.0);
-      chamber3.setTargetFraction( 0.0  );
-      break;
-      
-
-      
+        chamber1.setTargetFraction( f);
+        chamber2.setTargetFraction( f);
+        chamber3.setTargetFraction( 1.0-f );
+        chamber4.setTargetFraction( 1.0-f );
+        break;
+  
+      case 1:
+        chamber1.setTargetFraction( 1.0-f);
+        chamber2.setTargetFraction( 1.0-f);
+        chamber3.setTargetFraction( f );
+        chamber4.setTargetFraction( f );
+        break;
+   
+      }
   }
-  }
-   chamber1.loop();
- chamber2.loop();
- chamber3.loop();
-
-
+   
 }
+
+long lastPrintGraph = 0;
 
 void printGraph()
 {
 
-return;
+    if( millis() - lastPrintGraph < 2000 )
+      return;
 
+    lastPrintGraph = millis();
+    Serial.print(reservoir.pumpSpeed);   
+    Serial.print(",");
+    Serial.print(reservoir.targetPressure);   
+    Serial.print(",");
+   
     Serial.print(reservoir.pressure);   
     Serial.print(",");
 
+/*
     Serial.print(chamber1.targetPressure);
     Serial.print(",");
     Serial.print(chamber1.pressure);
     Serial.print(",");
     Serial.print(chamber1.state);
-  
+    Serial.print(",");
+    */
+    /*
+    Serial.print(10.0*imuNod);
+    Serial.print(",");
+    Serial.print(10.0*imuTurn);
+  */
     Serial.println();
 }
 
@@ -374,8 +348,6 @@ long lastPrintPressures = 0;
 void printPressures(char*label)
 {
 
-  return;
-  
   if( millis() - lastPrintPressures < 1000 )
     return;
 

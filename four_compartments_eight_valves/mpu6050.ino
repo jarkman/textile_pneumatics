@@ -36,9 +36,6 @@ int16_t gx, gy, gz;
 //#define OUTPUT_BINARY_ACCELGYRO
 
 
-#define LED_PIN 13
-bool blinkState = false;
-
 void setupMpu6050() {
     // join I2C bus (I2Cdev library doesn't do this automatically)
     #if I2CDEV_IMPLEMENTATION == I2CDEV_ARDUINO_WIRE
@@ -51,9 +48,23 @@ void setupMpu6050() {
     Serial.println("Initializing I2C devices...");
     accelgyro.initialize();
 
+    accelgyro.setDMPEnabled(false);
+
     // verify connection
     Serial.println("Testing device connections...");
-    Serial.println(accelgyro.testConnection() ? "MPU6050 connection successful" : "MPU6050 connection failed");
+    if( ! accelgyro.testConnection())
+    {
+      gotImu = false;
+      Serial.println( "MPU6050 connection failed");
+      return;
+    }
+    else
+    {
+      gotImu = true;
+      Serial.println( "MPU6050 connection successful");
+     
+    }
+
 
     // use the code below to change accel/gyro offset values
     /*
@@ -83,9 +94,10 @@ void setupMpu6050() {
 }
 
 void loopMpu6050() {
+  if( trace ) Serial.println("accelgyro.getMotion6");
     // read raw accel/gyro measurements from device
     accelgyro.getMotion6(&ax, &ay, &az, &gx, &gy, &gz);
-
+  if( trace ) Serial.println("accelgyro.getMotion6 done");
 
     // numbers in the range +- 32000 or so
     // ax around 10k is a nod forward/back
@@ -100,7 +112,7 @@ void loopMpu6050() {
       if( imuTurn > imuSmoothTurn )
         imuSmoothTurn = imuTurn;
       else
-        imuSmoothTurn = imuSmoothTurn * 0.99;
+        imuSmoothTurn = imuSmoothTurn * 0.9;
     }
 
    if( imuTurn < - 0.1 )
@@ -134,7 +146,5 @@ void loopMpu6050() {
         Serial.write((uint8_t)(gz >> 8)); Serial.write((uint8_t)(gz & 0xFF));
     #endif
 
-    // blink LED to indicate activity
-    blinkState = !blinkState;
-    digitalWrite(LED_PIN, blinkState);
+    
 }

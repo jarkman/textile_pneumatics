@@ -39,7 +39,10 @@ void Chamber::loop()
     state = 0;
     return;
   }
-  
+
+  if( remainingMs > loopDuration )
+    remainingMs = loopDuration;
+    
   if( targetPressure < p )
   {
     digitalWrite(inflatePin,0);
