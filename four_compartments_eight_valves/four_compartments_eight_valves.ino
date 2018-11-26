@@ -1,3 +1,5 @@
+#include <QC2Control.h>
+
 
 #include <Wire.h> 
 
@@ -5,6 +7,13 @@
 #include "reservoir.h"
 
 #define LED_PIN 13
+
+//Pin 4 for Data+
+//Pin 5 for Data-
+//See How to connect in the documentation for more details.
+// https://github.com/septillion-git/QC2Control
+QC2Control quickCharge(11,12);
+
 
 const int reservoirPumpPin = 10; // must be a PWM pin - 3, 5, 6, 9, 10, and 11 on Nano
 
@@ -99,6 +108,8 @@ void setup() {
   
   Serial.println("");
   Serial.println("---Setup---");
+  
+  
   if( trace ) Serial.println("setupI2C");
   setupI2C();
   if( trace ) Serial.println("setupMpu6050");
@@ -117,6 +128,11 @@ void setup() {
   startTime = millis();
   mode = 0;
   modeStart = millis();
+
+  if( trace ) Serial.println("quickCharge.set12V");
+  //set voltage to 12V
+  quickCharge.set12V();
+  
   if( trace ) Serial.println("setup done");
 }
 

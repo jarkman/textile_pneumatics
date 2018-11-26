@@ -21,8 +21,10 @@ MPU6050 accelgyro;
 int16_t ax, ay, az;
 int16_t gx, gy, gz;
 
+float xAngle = 0.0, yAngle = 0.0, zAngle = 0.0; // measures of recent angle change
+float returnRate = 20.0; // degs/sec
 
-
+long lastMicros;
 
 // uncomment "OUTPUT_READABLE_ACCELGYRO" if you want to see a tab-separated
 // list of the accel X/Y/Z and then gyro X/Y/Z values in decimal. Easy to read,
@@ -93,6 +95,25 @@ void setupMpu6050() {
     pinMode(LED_PIN, OUTPUT);
 }
 
+// Maintain a measure of recent angle change
+float updateAngle( float a, int16_t g, float secs )
+{
+  float degsPerSec = (float) g / 131.0;
+  float degs = degsPerSec * secs;
+  a = a + degs;
+
+  float returnDelta = returnRate * secs; // bringing us back to zero at fixed rate
+  if( a > returnDelta )
+    a -= returnDelta;
+  else if( a < - returnDelta )
+    a -= returnDelta;
+
+  a = fconstrain( a, -180.0, 180.0 );
+  return a;
+    
+}
+
+
 void loopMpu6050() {
   if( trace ) Serial.println("accelgyro.getMotion6");
     // read raw accel/gyro measurements from device
@@ -103,8 +124,36 @@ void loopMpu6050() {
     // ax around 10k is a nod forward/back
     // gz around +20000 is a head turn left, -20000 is a head turn right
 
-    imuNod = ax/10000.0;
-    imuTurn = gz/-20000.0;
+    /* possible scale factors
+     *  16 384 counts/g  
+        8 192 counts/g  
+        4 096 counts/g  
+        2 048 counts/g  
+
+      Angular Velocity Limit  |   Sensitivity (counts per deg/s)
+      ----------------------------------------
+      250º/s                  |    131
+      500º/s                  |    65.5 
+      1000º/s                 |    32.8 
+      2000º/s                 |    16.4
+     */
+
+    
+    float xDegsPerSec = (float) gx / 131.0;
+
+    long now = micros();
+
+    float secs = 0.000001 * (float) (now - lastMicros);
+    lastMicros = now;
+
+    secs = fconstrain( secs, 0.0, 0.010 ); 
+    
+    xAngle = updateAngle( xAngle, gx, secs );
+    yAngle = updateAngle( yAngle, gy, secs );
+    zAngle = updateAngle( zAngle, gz, secs );
+    
+    imuNod = xAngle/30.0; //ax/10000.0;
+    imuTurn = -zAngle/30.0; //gz/-20000.0;
 
     // if we're turning
     if( imuTurn > 0.1 )
