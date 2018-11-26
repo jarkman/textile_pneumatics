@@ -5,10 +5,10 @@ Reservoir::Reservoir(int p,  int s)
 
   sensorPin = s;
 
-  targetPressure = 14;
+  targetPressure = 50;
   deadband = 2;
   smoothedPressure = 0.0;
-  pumpDelta = 0.001; // pump speed change per loop
+  pumpDelta = 0.004; // pump speed change per loop
   
   pinMode(pumpPin, OUTPUT);
   //setPwmFrequency(pumpPin, 1024 ); // 31khz for whine reduction
@@ -22,7 +22,7 @@ void Reservoir::loop()
   //if(  pressure > targetPressure  )
   //  setPumpSpeed(0.0);
   //else
-    setPumpSpeed( pumpSpeed +  (targetPressure-smoothedPressure) / 100.0); // speed dependent on how far we have to go
+    setPumpSpeed( pumpSpeed +  (targetPressure-pressure) / 1000.0); // speed dependent on how far we have to go
 
  
 }
@@ -38,16 +38,21 @@ void Reservoir::setPumpSpeed(float p)
       
   //if( p > 0.0 )
   //{
-    p = fconstrain(p, pumpSpeed-pumpDelta, pumpSpeed+pumpDelta );
+  //  p = fconstrain(p, pumpSpeed-pumpDelta, pumpSpeed+pumpDelta );
     
   //}
 
+  //p = 1.0;
+  
   pumpSpeed = p;
 
-  if( p > 0.0 )
-  {
-    p = p * 0.5 + 0.5; // pump starts spinning at 0.3
-  }
+  if( p > 0.1 )
+
+    p = p * 0.3 + 0.7; // pump starts spinning at 0.3
+
+  else
+    p = 0;
+    
   analogWrite(pumpPin, 255.0* p);
 
   //Serial.print("                                      ");

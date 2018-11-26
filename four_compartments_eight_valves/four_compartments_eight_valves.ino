@@ -314,26 +314,27 @@ long lastPrintGraph = 0;
 void printGraph()
 {
 
-    if( millis() - lastPrintGraph < 2000 )
+    if( millis() - lastPrintGraph < 20 )
       return;
 
     lastPrintGraph = millis();
-    Serial.print(reservoir.pumpSpeed);   
+    /*
+    Serial.print(10.0 * reservoir.pumpSpeed);   
     Serial.print(",");
     Serial.print(reservoir.targetPressure);   
     Serial.print(",");
-   
+   */
     Serial.print(reservoir.pressure);   
     Serial.print(",");
 
-/*
+
     Serial.print(chamber1.targetPressure);
     Serial.print(",");
     Serial.print(chamber1.pressure);
     Serial.print(",");
     Serial.print(chamber1.state);
     Serial.print(",");
-    */
+    
     /*
     Serial.print(10.0*imuNod);
     Serial.print(",");
