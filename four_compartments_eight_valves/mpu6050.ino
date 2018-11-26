@@ -22,7 +22,7 @@ int16_t ax, ay, az;
 int16_t gx, gy, gz;
 
 float xAngle = 0.0, yAngle = 0.0, zAngle = 0.0; // measures of recent angle change
-float returnRate = 25.0; // degs/sec
+float returnRate = 20.0; // degs/sec
 
 long lastMicros;
 
