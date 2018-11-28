@@ -6,7 +6,7 @@
 #include "chamber.h"
 #include "reservoir.h"
 
-#define LED_PIN 13
+#define LED_PIN 13 
 
 //Pin 4 for Data+
 //Pin 5 for Data-
@@ -54,10 +54,15 @@ boolean gotSupermanual = false;
 boolean gotImu = false;
 
 
-float imuNod = 0.0; // nod amount from -1.0 to 1.0
-float imuTurn = 0.0; // head turn amount from -1.0 to 1.0
-float imuSmoothTurn = 0.0;
+float imuNod = 0.0;   // nod amount from -1.0 to 1.0
+float imuTurn = 0.0; // head turn amount (rightwards) from -1.0 to 1.0
+float imuLean = 0.0; // head lean amount leftwards
 
+float lCurl;
+float rCurl;
+float lStraighten;
+float rStraighten;
+  
 long startTime;
 int mode = 0;
 long modeStart = 0;
@@ -222,21 +227,44 @@ boolean loopImuPose()
 {
   if( ! gotImu )
     return false;
+
+  // linear mixing of our two behaviours
+  float nodFraction = fabs( imuNod )/(fabs( imuNod ) + fabs( imuTurn ) + 0.1);
+  float turnFraction = fabs( imuTurn )/(fabs( imuNod ) + fabs( imuTurn ) + 0.1);
+
+  lCurl = 0;
+  rCurl = 0;
+  lStraighten = 0;
+  rStraighten = 0;
+  
+
+  // nod bends us forwards
+    lCurl += nodFraction * imuNod;
+    rCurl += nodFraction * imuNod;
     
-  float l;
-  float r;
 
-  l = fconstrain(imuNod*0.5 + 0.5, 0.0, 1.0);
-  r = fconstrain(imuNod*0.5 + 0.5, 0.0, 1.0);
-  l += imuTurn;
-  r -= imuTurn;
-
-   //return true;
+  // turn does one side not the other
+   double turnExtra = 0.3;
    
-  chamber1.setTargetFraction( l);
-  chamber2.setTargetFraction( r);
-  chamber3.setTargetFraction( l);
-  chamber4.setTargetFraction( r);
+    lCurl += turnFraction * (turnExtra + imuTurn);
+    rCurl += turnFraction * (turnExtra - imuTurn);
+
+    // straighten is always inverse of curl
+    lStraighten = ( 1.0-lCurl );
+    rStraighten = ( 1.0-rCurl );
+
+    
+
+  
+  lCurl = fconstrain(lCurl, 0.0, 1.0);
+  rCurl = fconstrain(rCurl, 0.0, 1.0);
+  lStraighten = fconstrain(lStraighten, 0.0, 1.0);
+  rStraighten = fconstrain(rStraighten, 0.0, 1.0);
+  
+  chamber1.setTargetFraction( lCurl);
+  chamber2.setTargetFraction( lStraighten);
+  chamber3.setTargetFraction( rStraighten);
+  chamber4.setTargetFraction( rCurl);
 
   return true;
 }
@@ -340,6 +368,7 @@ void printGraph()
     Serial.print(reservoir.targetPressure);   
     Serial.print(",");
    */
+   /*
     Serial.print(reservoir.pressure);   
     Serial.print(",");
 
@@ -350,12 +379,25 @@ void printGraph()
     Serial.print(",");
     Serial.print(chamber1.state);
     Serial.print(",");
-    
+    */
     /*
     Serial.print(10.0*imuNod);
     Serial.print(",");
     Serial.print(10.0*imuTurn);
   */
+
+    Serial.print(lCurl);
+    Serial.print(","); 
+    Serial.print(lStraighten);
+    Serial.print(","); 
+    Serial.print(rStraighten);
+    Serial.print(",");
+    Serial.print(rCurl);
+    Serial.print(","); 
+    
+    
+  
+  
     Serial.println();
 }
 

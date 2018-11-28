@@ -109,6 +109,12 @@ float updateAngle( float a, int16_t g, float secs )
     a += returnDelta;
 
   a = fconstrain( a, -180.0, 180.0 );
+
+/*
+  Serial.print(degsPerSec);
+  Serial.print(", ");
+  Serial.println(a);
+ */ 
   return a;
     
 }
@@ -138,8 +144,6 @@ void loopMpu6050() {
       2000º/s                 |    16.4
      */
 
-    
-    float xDegsPerSec = (float) gx / 131.0;
 
     long now = micros();
 
@@ -151,26 +155,15 @@ void loopMpu6050() {
     xAngle = updateAngle( xAngle, gx, secs );
     yAngle = updateAngle( yAngle, gy, secs );
     zAngle = updateAngle( zAngle, gz, secs );
+
+    // +ve x is head lean right
+    // +ve y is nod forwards
+    // +ve z is head turn left
     
-    imuNod = xAngle/30.0; //ax/10000.0;
-    imuTurn = -zAngle/30.0; //gz/-20000.0;
-
-    // if we're turning
-    if( imuTurn > 0.1 )
-    {
-      if( imuTurn > imuSmoothTurn )
-        imuSmoothTurn = imuTurn;
-      else
-        imuSmoothTurn = imuSmoothTurn * 0.9;
-    }
-
-   if( imuTurn < - 0.1 )
-    {
-      if( imuTurn < imuSmoothTurn )
-        imuSmoothTurn = imuTurn;
-      else
-        imuSmoothTurn = imuSmoothTurn * 0.99;
-    }
+    imuNod = yAngle/30.0; // nod forwards
+    imuTurn = -zAngle/30.0; // turn to the right
+    imuLean = xAngle / 30.0;
+    
     // these methods (and a few others) are also available
     //accelgyro.getAcceleration(&ax, &ay, &az);
     //accelgyro.getRotation(&gx, &gy, &gz);

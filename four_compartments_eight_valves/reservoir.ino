@@ -48,7 +48,7 @@ void Reservoir::setPumpSpeed(float p)
 
   if( p > 0.1 )
 
-    p = p * 0.3 + 0.7; // pump starts spinning at 0.3
+    p = p * 0.2 + 0.8; // pump starts spinning at 0.3
 
   else
     p = 0;
