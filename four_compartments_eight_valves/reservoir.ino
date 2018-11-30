@@ -6,7 +6,7 @@ Reservoir::Reservoir(int p,  int s)
   sensorPin = s;
 
   targetPressure = 50;
-  deadband = 2;
+  deadband = 5;
   smoothedPressure = 0.0;
   pumpDelta = 0.004; // pump speed change per loop
   
@@ -19,11 +19,26 @@ void Reservoir::loop()
 {
   readPressure();
 
-  //if(  pressure > targetPressure  )
-  //  setPumpSpeed(0.0);
-  //else
+  if( doPwmPumpControl )
+  {
     setPumpSpeed( pumpSpeed +  (targetPressure-pressure) / 1000.0); // speed dependent on how far we have to go
 
+  }
+  else
+  {
+    if( digitalRead( pumpPin ))
+    {
+      if(  pressure > targetPressure  ) // reached target, turn off
+        digitalWrite( pumpPin, false );
+    }
+    else
+    {
+      if(  pressure < targetPressure - deadband ) // below deadband, turn on
+        digitalWrite( pumpPin, true );
+    }
+  }
+
+    
  
 }
 

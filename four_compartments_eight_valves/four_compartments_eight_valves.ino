@@ -48,6 +48,8 @@ boolean trace = false;
 boolean tracePressures = false;
 boolean traceGraph = true;
 
+boolean doPwmPumpControl = false;
+
 boolean traceSupermanual = false;
 float supermanual[]={0,0,0,0};
 boolean gotSupermanual = false;
@@ -244,6 +246,7 @@ boolean loopImuPose()
     
 
   // turn does one side not the other
+  // turn has extra curl
    double turnExtra = 0.3;
    
     lCurl += turnFraction * (turnExtra + imuTurn);
