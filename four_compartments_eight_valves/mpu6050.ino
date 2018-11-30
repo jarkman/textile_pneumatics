@@ -22,6 +22,7 @@ int16_t ax, ay, az;
 int16_t gx, gy, gz;
 
 float xAngle = 0.0, yAngle = 0.0, zAngle = 0.0; // measures of recent angle change
+float zAcc = 0.0; // smoothed vertical acceleration
 float returnRate = 20.0; // degs/sec
 
 long lastMicros;
@@ -119,6 +120,31 @@ float updateAngle( float a, int16_t g, float secs )
     
 }
 
+float updateAcc( float a, int16_t g, float secs )
+{
+  float mss = (float) g / 384.0;
+  mss = mss/50.0; // 1g range
+  mss = 1.0 - mss; // subtract 1g
+
+  // just smooth 
+  a = 0.9 * a + 0.1 * mss;
+
+  //a = mss;
+  
+
+  a = fconstrain( a, -2.0, 2.0 );
+
+  //Serial.println(a);
+
+/*
+  Serial.print(degsPerSec);
+  Serial.print(", ");
+  Serial.println(a);
+ */ 
+  return a;
+    
+}
+
 
 void loopMpu6050() {
   if( trace ) Serial.println("accelgyro.getMotion6");
@@ -163,6 +189,9 @@ void loopMpu6050() {
       idleTime += secs;
     }
     
+    zAcc = updateAcc( zAcc, az, secs );
+    
+    
     xAngle = updateAngle( xAngle, gx, secs );
     yAngle = updateAngle( yAngle, gy, secs );
     zAngle = updateAngle( zAngle, gz, secs );
@@ -174,6 +203,8 @@ void loopMpu6050() {
     imuNod = yAngle/30.0; // nod forwards
     imuTurn = -zAngle/30.0; // turn to the right
     imuLean = xAngle / 30.0;
+    imuBounce = zAcc * 2.0;
+    imuBounce = fconstrain(imuBounce, -1.0, 1.0);
     
     // these methods (and a few others) are also available
     //accelgyro.getAcceleration(&ax, &ay, &az);

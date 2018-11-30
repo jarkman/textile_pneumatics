@@ -61,6 +61,8 @@ float imuNod = 0.0;   // nod amount from -1.0 to 1.0
 float imuTurn = 0.0; // head turn amount (rightwards) from -1.0 to 1.0
 float imuLean = 0.0; // head lean amount leftwards
 
+float imuBounce = 0.0; // vertical acceleration -1.0 to 1.0
+
 float lCurl;
 float rCurl;
 float lStraighten;
@@ -249,9 +251,12 @@ boolean loopImuPose()
   if( ! gotImu )
     return false;
 
-  // linear mixing of our two behaviours
-  float nodFraction = fabs( imuNod )/(fabs( imuNod ) + fabs( imuTurn ) + 0.1);
-  float turnFraction = fabs( imuTurn )/(fabs( imuNod ) + fabs( imuTurn ) + 0.1);
+  // linear mixing of our behaviours
+  float total = fabs( imuNod ) + fabs( imuTurn ) + fabs( imuBounce ) + 0.1;
+  
+  float nodFraction = fabs( imuNod )/total;
+  float turnFraction = fabs( imuTurn )/total;
+  float bounceFraction = fabs( imuBounce )/total;
 
   lCurl = 0;
   rCurl = 0;
@@ -263,7 +268,9 @@ boolean loopImuPose()
     lCurl += nodFraction * imuNod;
     rCurl += nodFraction * imuNod;
     
-
+   lCurl += bounceFraction * imuBounce;
+   rCurl += bounceFraction * imuBounce;
+ 
   // turn does one side not the other
   // turn has extra curl
    double turnExtra = 0.3;
@@ -272,8 +279,8 @@ boolean loopImuPose()
     rCurl += turnFraction * (turnExtra - imuTurn);
 
     // straighten is always inverse of curl
-    lStraighten =  nodFraction * ( 1.0-lCurl );
-    rStraighten = nodFraction * ( 1.0-rCurl );
+    lStraighten =  (nodFraction + bounceFraction) * ( 1.0-lCurl );
+    rStraighten = (nodFraction + bounceFraction) * ( 1.0-rCurl );
 
     
 
