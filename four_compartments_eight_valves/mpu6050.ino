@@ -151,6 +151,17 @@ void loopMpu6050() {
     lastMicros = now;
 
     secs = fconstrain( secs, 0.0, 0.010 ); 
+
+    float idleSensorLimit = 1500.0;
+    
+    if( fabs( gx ) > idleSensorLimit || fabs( gy ) > idleSensorLimit || fabs( gz ) > idleSensorLimit )
+    {
+      idleTime = 0.0;
+    }
+    else
+    {
+      idleTime += secs;
+    }
     
     xAngle = updateAngle( xAngle, gx, secs );
     yAngle = updateAngle( yAngle, gy, secs );

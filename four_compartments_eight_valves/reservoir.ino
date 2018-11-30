@@ -19,6 +19,12 @@ void Reservoir::loop()
 {
   readPressure();
 
+  if( isIdle() )
+  {
+    digitalWrite(pumpPin,0);
+    return;
+  }
+  
   if( doPwmPumpControl )
   {
     setPumpSpeed( pumpSpeed +  (targetPressure-pressure) / 1000.0); // speed dependent on how far we have to go

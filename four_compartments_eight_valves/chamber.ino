@@ -21,6 +21,14 @@ void Chamber::loop()
 {
   readPressure();
 
+  if( isIdle() )
+  {
+    digitalWrite(inflatePin,0);
+    digitalWrite(deflatePin,0);
+    state = 0;
+    return;
+  }
+
   float p = pressure;
   
   if( fabs( targetPressure - p ) < deadband/2.0 )

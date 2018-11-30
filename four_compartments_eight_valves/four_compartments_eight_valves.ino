@@ -55,6 +55,7 @@ float supermanual[]={0,0,0,0};
 boolean gotSupermanual = false;
 boolean gotImu = false;
 
+float idleTime = 0.0;
 
 float imuNod = 0.0;   // nod amount from -1.0 to 1.0
 float imuTurn = 0.0; // head turn amount (rightwards) from -1.0 to 1.0
@@ -181,6 +182,12 @@ void loop() {
   //Serial.println(loopDuration);
 }
 
+boolean isIdle()
+{
+  return idleTime > 60.0 ;
+}
+
+
 void timedLoop()
 {
 
@@ -188,6 +195,7 @@ void timedLoop()
   loopMpu6050();
   if( trace ) Serial.println("loopSupermanual");
   loopSupermanual();
+ 
   if( trace ) Serial.println("reservoir.loop");
   reservoir.loop();
   baselinePressure = reservoir.smoothedPressure - 2.0;
@@ -264,8 +272,8 @@ boolean loopImuPose()
     rCurl += turnFraction * (turnExtra - imuTurn);
 
     // straighten is always inverse of curl
-    lStraighten = ( 1.0-lCurl );
-    rStraighten = ( 1.0-rCurl );
+    lStraighten =  nodFraction * ( 1.0-lCurl );
+    rStraighten = nodFraction * ( 1.0-rCurl );
 
     
 
