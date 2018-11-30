@@ -85,12 +85,23 @@ void setup1msTimer()
 
   // Timer0 is already used for millis() - we'll just interrupt somewhere
   // in the middle 
-  OCR0A = 0xAF;
+  OCR0A = 0x20;
+  OCR0B = 0x9F;
   TIMSK0 |= _BV(OCIE0A);
+  TIMSK0 |= _BV(OCIE0B);
 } 
  
 // Interrupt is called once a millisecond
 SIGNAL(TIMER0_COMPA_vect) 
+{
+
+  chamber1.oneMsTimer();
+  chamber2.oneMsTimer();
+  chamber3.oneMsTimer();
+  chamber4.oneMsTimer();
+}
+
+SIGNAL(TIMER0_COMPB_vect) 
 {
 
   chamber1.oneMsTimer();
